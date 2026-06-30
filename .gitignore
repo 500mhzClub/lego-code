@@ -1,2 +1,8 @@
 *.mp4
 *.zip
+
+# Python venv / test artifacts
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc

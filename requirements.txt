@@ -1,0 +1,16 @@
+# Runtime dependencies for the LEGO TFLite object-detection utilities.
+#
+# NOTE: tflite_runtime, tensorflow and the TF Object Detection API are only
+# needed on the device / in the training Colab. They are intentionally NOT
+# required to run the unit tests (the tests mock them) -- see requirements-dev.txt.
+
+# --- Detection scripts (TFLite_detection_*.py) ---
+numpy
+opencv-python==3.4.11.41            # pinned in get_pi_requirements.sh (v4 had errors on Pi)
+# tflite_runtime                    # installed from a platform-specific wheel, see get_pi_requirements.sh
+# tensorflow                        # alternative to tflite_runtime on desktop
+
+# --- Dataset / training utilities (create_csv.py, create_tfrecord.py, calculate_map_cartucho.py) ---
+pandas
+Pillow
+# object_detection                  # TF Object Detection API, installed in the training Colab only

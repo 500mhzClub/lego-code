@@ -1,0 +1,14 @@
+# Development / test dependencies.
+#
+# These are everything you need to run the unit-test suite locally WITHOUT any
+# of the heavy device-only packages (tensorflow, tflite_runtime, object_detection).
+# Those modules are mocked in tests/conftest.py, so the tests run on any machine.
+#
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r requirements-dev.txt
+#   .venv/bin/pytest
+
+pandas
+numpy
+Pillow
+pytest
