@@ -1,0 +1,11 @@
+# To start the python environment
+# Make sure the Lego Hub is turned on
+
+cd ~/tflite1
+source tflite1-env/bin/activate
+
+#Next move into the code folder
+
+cd ~/Desktop/TGR/final
+python AutoLego.py
+

@@ -1,0 +1,37 @@
+# To start the python environment
+# Make sure the Lego Hub is turned on
+
+cd ~/tflite1
+source tflite1-env/bin/activate
+
+# Now go to the sample code folder
+# run the following code which should write a message on the Hub and 
+# spin the motors
+
+# Notice the code for the hub is created in strings then sent to the hub
+# using the PyBoard class.
+#
+# Note the message uses the await keyword to halt execution until the message is sent.
+
+
+cd ~/Python/SampleCode
+python classTest.py
+
+
+# Full documentation for the Lego Python is available at
+# http://spike.legoeducation.com/prime/modal/help
+# Look in Python then API Modules
+
+
+# To check the object detector
+# Notice this will run at about 3-4 frames per second
+cd ~/tflite1
+python3 TFLite_detection_webcam.py --modeldir=Sample_TFLite_model --resolution=1024x768
+
+
+# TO make use of the accelerator use the following command
+
+python3 TFLite_detection_webcam.py --modeldir=Sample_TFLite_model --resolution=720x480 --edgetpu
+
+
+
