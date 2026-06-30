@@ -96,6 +96,32 @@ def test_stop_sign_halts_with_hazards_and_shuts_down(monkeypatch):
     assert any("light_matrix.show_image(1)" in c for c in pyb.commands)
 
 
+def test_close_distance_sensor_obstacle_halts_with_hazards(monkeypatch):
+    from simulator import FakePyboard
+
+    monkeypatch.setattr(streams.time, "sleep", lambda *a, **k: None)
+    monkeypatch.setattr(movement, "read_distance_mm", lambda pyb: 100)
+
+    pyb = FakePyboard()
+    object_detected = threading.Event()
+    shutdown_event = threading.Event()
+    q = queue.Queue()
+
+    def target():
+        try:
+            streams.driver(object_detected, shutdown_event, q, pyb)
+        except KeyboardInterrupt:
+            pass
+
+    t = threading.Thread(target=target)
+    t.start()
+    t.join(timeout=3.0)
+
+    assert not t.is_alive()
+    assert shutdown_event.is_set()
+    assert any("light_matrix.show_image(1)" in c for c in pyb.commands)
+
+
 def test_traffic_light_stops_then_turns(monkeypatch):
     cmds = _joined(_run_driver_for_class("traffic light", monkeypatch))
     # turn_right_gyro is identifiable by its gyro threshold loop.
@@ -112,6 +138,11 @@ def test_bicycle_triggers_overtake(monkeypatch):
     cmds = _joined(_run_driver_for_class("bicycle", monkeypatch))
     # overtake_right is the only reaction that pairs and reverses tank steering.
     assert "move_tank" in cmds
+
+
+def test_cup_triggers_fast_drive(monkeypatch):
+    cmds = _joined(_run_driver_for_class("cup", monkeypatch))
+    assert "velocity = 700" in cmds
 
 
 def test_unknown_class_is_ignored_gracefully(monkeypatch, capsys):

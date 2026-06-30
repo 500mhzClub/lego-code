@@ -255,7 +255,7 @@ def default_labels():
     # mirrors the on-device labelmap.txt shape: real classes plus UNKNOWN padding
     return [
         "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train",
-        "truck", "boat", "traffic light", "fire hydrant", "stop sign",
+        "truck", "boat", "traffic light", "fire hydrant", "stop sign", "cup",
     ] + ["UNKNOWN"] * 5
 
 

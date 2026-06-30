@@ -8,7 +8,24 @@ import time
 
 
 UNKNOWN_OBJECT = "__unknown_object__"
-UNKNOWN_OBJECT_DISTANCE_THRESHOLD_MM = 400
+DISTANCE_SENSOR_STOP_THRESHOLD_MM = 400
+UNKNOWN_OBJECT_DISTANCE_THRESHOLD_MM = DISTANCE_SENSOR_STOP_THRESHOLD_MM
+
+
+def _stop_if_obstacle_is_close(pyb, shutdown_event, label="obstacle"):
+    try:
+        distance_mm = movement.read_distance_mm(pyb)
+    except ValueError as exc:
+        print(f"Distance sensor read failed: {exc}")
+        return False
+
+    if distance_mm != -1 and distance_mm <= DISTANCE_SENSOR_STOP_THRESHOLD_MM:
+        print(f"{label} detected at {distance_mm}mm")
+        shutdown_event.set()
+        movement.stop_with_hazards(pyb)
+        return True
+
+    return False
 
 
 """ Category 1 (C1) - Movement & Control """
@@ -19,9 +36,8 @@ def driver(object_detected, shutdown_event, q, pyb):
         if shutdown_event.is_set():
             movement.stop(pyb)
             break
-        
+
         else:
-            # continuously checks in a while loop if an object has been detected or not
             if object_detected.is_set():
                 # object detected - react, clear the flags and continue
                 detection_event = q.get()
@@ -51,21 +67,18 @@ def driver(object_detected, shutdown_event, q, pyb):
                     movement.overtake_right(pyb) # simulate pulling out and overtaking
                     time.sleep(4) # how long would we like the increased speed to last
 
+                elif class_detected == "cup":
+                    print("CUP DETECTED! Driving through it.")
+                    movement.drive_fast(pyb)
+                    time.sleep(1.5)
+
                 elif class_detected == "new class":
                     # your new function call here
                     pass
 
                 elif class_detected == UNKNOWN_OBJECT:
-                    try:
-                        distance_mm = movement.read_distance_mm(pyb)
-                    except ValueError as exc:
-                        print(f"UNKNOWN OBJECT DETECTED: {detected_label}. Distance sensor read failed: {exc}")
-                    else:
-                        if distance_mm != -1 and distance_mm <= UNKNOWN_OBJECT_DISTANCE_THRESHOLD_MM:
-                            print(f"UNKNOWN OBJECT DETECTED: {detected_label} at {distance_mm}mm")
-                            movement.stop_with_hazards(pyb)
-                        else:
-                            print(f"UNKNOWN OBJECT DETECTED: {detected_label}, but distance sensor is clear ({distance_mm}mm)")
+                    if not _stop_if_obstacle_is_close(pyb, shutdown_event, f"UNKNOWN OBJECT DETECTED: {detected_label}"):
+                        print(f"UNKNOWN OBJECT DETECTED: {detected_label}, but distance sensor is clear")
                     
                 else:
                     print(f"UNKNOWN OBJECTED DETECTED: {class_detected}")
@@ -75,9 +88,13 @@ def driver(object_detected, shutdown_event, q, pyb):
                 # regardless of the class, clear the flags and continue
                 q.task_done()
                 object_detected.clear()
+                if shutdown_event.is_set():
+                    break
                 movement.drive(pyb)
             else:
                 # no object detected
+                if _stop_if_obstacle_is_close(pyb, shutdown_event):
+                    break
                 time.sleep(0.08) # approx matches the rate at which the detector() while loop fires
                 # this just helps with frames processed per second (fpps), otherwise the while True fires without delay
                 pass
@@ -107,7 +124,7 @@ def detector(object_detected, shutdown_event, pyb, videostream, width, height, i
     min_size_threshold = 42000   # the minimum size for an object to be deemed close                     """42000""" 
     boxes_idx, classes_idx, scores_idx = 0, 1, 2    # the respective indexes within output_details
     # the only classes we will react to - this is to avoid reacting to false positives of other classes
-    implemented_classes = ["stop sign", "traffic light", "person", "bicycle"]
+    implemented_classes = ["stop sign", "traffic light", "person", "bicycle", "cup"]
     
     
     while not shutdown_event.is_set():

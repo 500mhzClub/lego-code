@@ -87,6 +87,13 @@ def test_unimplemented_class_queues_unknown_object_event():
     assert queued == [{"class": streams.UNKNOWN_OBJECT, "label": "car"}]
 
 
+def test_cup_is_an_implemented_class():
+    script = [[("cup", 0.95, _big_box())] for _ in range(20)]
+    object_detected, queued = _run_detector(script)
+    assert object_detected.is_set()
+    assert queued == ["cup"]
+
+
 def test_only_one_event_until_cleared():
     # Even with a long run of the same object, exactly one event is raised until
     # the flag is cleared (driver()'s job), so the queue holds a single label.
