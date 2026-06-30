@@ -21,3 +21,39 @@ This script creates TFRecord files from a CSV annotation data file and a folder 
 
 Original credit for the script goes to [datitran](https://github.com/datitran/raccoon_dataset/blob/master/generate_tfrecord.py).
 # lego-code
+
+## Testing changes locally before deploying to the bot
+
+The robot streams MicroPython source to the LEGO hub over serial, and runs
+object detection on the Pi. None of that logic actually *needs* the hub, camera
+or Coral TPU to be validated -- each sits behind a small interface that we fake
+in [simulator.py](simulator.py). This lets you catch most mistakes on a laptop
+before sending code to the physical bot.
+
+First-time setup:
+
+    python3 -m venv .venv
+    .venv/bin/pip install -r requirements-dev.txt
+
+**Run the test suite** (syntax-checks every hub command + exercises the
+driver/detector decision logic):
+
+    ./run_tests.sh
+
+**Dry-run the whole robot** against fakes -- prints the exact MicroPython that
+*would* be sent to the hub for a scripted drive (cruise, see a person, hit a
+stop sign):
+
+    .venv/bin/python simulator.py
+
+What this catches without hardware:
+
+* syntax errors / typos in the MicroPython strings in `control/movement/misc.py`
+  (`tests/test_robot_commands.py` compiles every one)
+* wrong reactions in `driver()` -- "when the bot sees X, send Y"
+  (`tests/test_driver.py`)
+* the frame-voting / distance / confidence thresholds in `detector()`
+  (`tests/test_detector.py`)
+
+What still needs the real bot: physical motor ports, velocities and gyro angles
+(the tests assert the *command text* is what you intended, not how it moves).

@@ -114,6 +114,22 @@ _install_fake_tensorflow()
 _install_fake_object_detection()
 _install_fake_tflite_runtime()
 
+# The robot-control modules (streams.py) import cv2, which isn't installed off
+# the Pi. simulator.install_device_fakes() drops in a lightweight cv2 (and
+# tflite_runtime) only when the real package is missing, so streams imports
+# cleanly on any laptop.
+from simulator import install_device_fakes  # noqa: E402
+
+install_device_fakes()
+
+
+@pytest.fixture
+def fake_pyboard():
+    """A Pyboard stand-in that records the commands it would send to the hub."""
+    from simulator import FakePyboard
+
+    return FakePyboard()
+
 
 @pytest.fixture
 def make_voc_xml(tmp_path):
