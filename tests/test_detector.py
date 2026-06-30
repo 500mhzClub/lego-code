@@ -78,11 +78,13 @@ def test_far_away_object_is_ignored():
     assert not object_detected.is_set()
 
 
-def test_unimplemented_class_does_not_fire():
-    # "car" is detected by the model but isn't in implemented_classes.
+def test_unimplemented_class_queues_unknown_object_event():
+    # "car" is detected by the model but isn't in implemented_classes, so the
+    # driver can confirm it with the distance sensor before reacting.
     script = [[("car", 0.95, _big_box())] for _ in range(20)]
     object_detected, queued = _run_detector(script)
-    assert not object_detected.is_set()
+    assert object_detected.is_set()
+    assert queued == [{"class": streams.UNKNOWN_OBJECT, "label": "car"}]
 
 
 def test_only_one_event_until_cleared():

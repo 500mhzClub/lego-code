@@ -7,6 +7,9 @@ import numpy as np
 import time
 
 
+UNKNOWN_OBJECT = "__unknown_object__"
+UNKNOWN_OBJECT_DISTANCE_THRESHOLD_MM = 400
+
 
 """ Category 1 (C1) - Movement & Control """
 def driver(object_detected, shutdown_event, q, pyb):
@@ -21,7 +24,13 @@ def driver(object_detected, shutdown_event, q, pyb):
             # continuously checks in a while loop if an object has been detected or not
             if object_detected.is_set():
                 # object detected - react, clear the flags and continue
-                class_detected = q.get()
+                detection_event = q.get()
+                if isinstance(detection_event, dict):
+                    class_detected = detection_event.get("class")
+                    detected_label = detection_event.get("label", class_detected)
+                else:
+                    class_detected = detection_event
+                    detected_label = detection_event
                 # enact differing reaction based on the class detected here, which we recieve from the queue
                 
                 if   class_detected == "stop sign":
@@ -45,6 +54,18 @@ def driver(object_detected, shutdown_event, q, pyb):
                 elif class_detected == "new class":
                     # your new function call here
                     pass
+
+                elif class_detected == UNKNOWN_OBJECT:
+                    try:
+                        distance_mm = movement.read_distance_mm(pyb)
+                    except ValueError as exc:
+                        print(f"UNKNOWN OBJECT DETECTED: {detected_label}. Distance sensor read failed: {exc}")
+                    else:
+                        if distance_mm != -1 and distance_mm <= UNKNOWN_OBJECT_DISTANCE_THRESHOLD_MM:
+                            print(f"UNKNOWN OBJECT DETECTED: {detected_label} at {distance_mm}mm")
+                            movement.stop_with_hazards(pyb)
+                        else:
+                            print(f"UNKNOWN OBJECT DETECTED: {detected_label}, but distance sensor is clear ({distance_mm}mm)")
                     
                 else:
                     print(f"UNKNOWN OBJECTED DETECTED: {class_detected}")
@@ -196,7 +217,7 @@ def detector(object_detected, shutdown_event, pyb, videostream, width, height, i
             # we also check if the mode object is in our implemented_classes list,
             # as we only want to react to objects we have defined reactions for
             # this is to fix an earlier bug where the model would misclassify objects, and this would flood the terminal
-            if (mode_object_label == "None") or (mode_object_label == "UNKNOWN") or (mode_object_label not in implemented_classes): 
+            if (mode_object_label == "None") or (mode_object_label == "UNKNOWN"): 
                 pass # skip all the reaction
             else:
                 """an object of interest is the mode"""
@@ -235,9 +256,13 @@ def detector(object_detected, shutdown_event, pyb, videostream, width, height, i
 
                 # this is set to never fire unless the flag has been reset since the last object
                 if (mode_object_size_sum > size_threshold) and (mode_object_score_sum > score_threshold) and (not object_detected.is_set()):
+                    if mode_object_label in implemented_classes:
+                        q.put(mode_object_label) # append the label to the queue
+                    else:
+                        q.put({"class": UNKNOWN_OBJECT, "label": mode_object_label})
+
                     print(f"{mode_object_label} DETECTED!")
                     object_detected.set()    # set the event
-                    q.put(mode_object_label) # append the label to the queue
                 
                 
                 

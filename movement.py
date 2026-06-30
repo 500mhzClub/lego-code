@@ -1,6 +1,30 @@
 """ pyboard functions concerning movement """
 
 
+def read_distance_mm(pyb):
+    command = """
+print(distance_sensor.distance(port.C))
+"""
+    output = pyb.exec(command)
+    if isinstance(output, bytes):
+        output = output.decode("utf-8", errors="ignore")
+    if not str(output).strip():
+        return -1
+
+    for token in str(output).replace("\r", " ").replace("\n", " ").split():
+        try:
+            return int(token)
+        except ValueError:
+            pass
+
+    raise ValueError(f"Could not parse distance sensor reading: {output!r}")
+
+
+def obstacle_is_close(pyb, threshold_mm=400):
+    distance_mm = read_distance_mm(pyb)
+    return distance_mm != -1 and distance_mm <= threshold_mm
+
+
 # run_for_degrees takes (a port, the number of degrees to turn for, and the velocity)
 
 # we split "turn_left" into the movement and the signal
@@ -249,5 +273,3 @@ async def main():
 runloop.run(main())
 """
     pyb.exec(command)
-
-
